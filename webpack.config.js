@@ -13,6 +13,7 @@ module.exports = {
     path: path.resolve(__dirname, 'source/script'),
     filename: '[name].js'
   },
+  devtool: 'source-map',
   module: {
     loaders: [
       {
