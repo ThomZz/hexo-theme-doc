@@ -22,9 +22,16 @@ function Logo ({url_for, navigation}) {
   );
 }
 
-function Sidebar ({items, page, url_for, config, search, uncollapse, tocItems, visibleHeaderId, support}) {
+class Sidebar extends React.Component {
 
-  const renderItems = () => {
+  constructor(props) {
+    super(props);
+    this.searchForm = null;
+    this.items = [];
+  }
+
+  renderItems() {
+    const { items, page, url_for, config, tocItems, visibleHeaderId, support } = this.props;
     const supportItems = support && support.navigation === true ? [{
       type: 'label',
       text: support.navigation_label
@@ -35,7 +42,7 @@ function Sidebar ({items, page, url_for, config, search, uncollapse, tocItems, v
       target: '_blank'
     }] : [];
 
-    return (items || []).concat(supportItems).map((item, i) => {
+    const itemsTemplate = (items || []).concat(supportItems).map((item, i) => {
       return (<SidebarItem
         key={i + 'sidebar-item' }
         item={item}
@@ -43,41 +50,63 @@ function Sidebar ({items, page, url_for, config, search, uncollapse, tocItems, v
         config={config}
         tocItems={tocItems}
         visibleHeaderId={visibleHeaderId}
-        url_for={url_for} />
+        url_for={url_for}
+        ref ={ c => c ? this.items.push(c) : void 0 } />
       );
     });
-  };
 
-  return (
-    <nav className="doc-sidebar">
-      <div className="doc-sidebar__vertical-menu">
-        <SidebarToggle
-          className="doc-sidebar-toggle--primary doc-sidebar__vertical-menu__item"
-          onClick={uncollapse} />
-        <i className="dc-icon
-            dc-icon--search
-            dc-icon--interactive
-            doc-sidebar__vertical-menu__item
-            doc-sidebar__vertical-menu__item--primary"
-        onClick={uncollapse}>
-        </i>
-      </div>
-      <div className="doc-sidebar-content">
-        <div className="doc-sidebar__search-form">
-          <SearchForm search={search} autoFocus={true} />
+    this.items = this.flattenItems(this.items);
+
+    return itemsTemplate;
+  }
+
+  flattenItems(items) {
+    return items.reduce((acc, i) => {
+      i = Object.assign({}, i);
+      acc = acc.concat(i);
+      if (i.children) {
+        acc = acc.concat(this.flattenItems(i.children));
+        i.children = [];
+      }
+      return acc;
+    }, []);
+  }
+
+  render() {
+    const { search, uncollapse, autoFocus } = this.props;
+    return (
+      <nav className="doc-sidebar">
+        <div className="doc-sidebar__vertical-menu">
+          <SidebarToggle
+            className="doc-sidebar-toggle--primary doc-sidebar__vertical-menu__item"
+            onClick={uncollapse} />
+          <i className="dc-icon
+              dc-icon--search
+              dc-icon--interactive
+              doc-sidebar__vertical-menu__item
+              doc-sidebar__vertical-menu__item--primary"
+          onClick={uncollapse}>
+          </i>
         </div>
-        <ul className="doc-sidebar-list">
-          { renderItems() }
-        </ul>
-      </div>
-    </nav>
-  );
+        <div className="doc-sidebar-content">
+          <div className="doc-sidebar__search-form">
+            <SearchForm search={search} autoFocus={autoFocus} ref={c => this.searchForm = c }/>
+          </div>
+          <ul className="doc-sidebar-list">
+            { this.renderItems() }
+          </ul>
+        </div>
+      </nav>
+    );
+  }
 }
 
 class SidebarItem extends React.Component  {
   constructor (props) {
     super(props);
 
+    this.anchorElement = null;
+    this.children = null;
     this.state = {
       hasChildren: false,
       childrenListIsVisible: false
@@ -124,10 +153,12 @@ class SidebarItem extends React.Component  {
         visibleHeaderId={visibleHeaderId}
         url_for={url_for}
         hidden={!childrenListIsVisible}
+        ref ={ c => c ? this.children = c.children : void 0 }
       />);
     }
 
     if (isCurrent) {
+      //this.saveMenuScrollPosition();
       toc = (
         <ul className="doc-sidebar-list__toc-list">
           {
@@ -141,6 +172,7 @@ class SidebarItem extends React.Component  {
           }
         </ul>
       );
+
     }
 
     const itemClassName = classNames({
@@ -165,7 +197,7 @@ class SidebarItem extends React.Component  {
         {
           isLabel ? <span onClick={this.toggleChildrenVisibility.bind(this)}
             className={toggleClassName}>{item.text}</span> :
-            <a
+            <a ref={ c => this.anchorElement = c}
               className={toggleClassName}
               href={url_for(item.path)}
               target={item.target ? item.target : '_self'}>
@@ -178,29 +210,36 @@ class SidebarItem extends React.Component  {
     );
   }
 }
+class SidebarChildrenList extends React.Component  {
+  constructor (props) {
+    super(props);
+    this.children = [];
+  }
 
-function SidebarChildrenList ({item, page, config, tocItems, visibleHeaderId, url_for, hidden}) {
-
-  return (<ul className={classNames({
-    'doc-sidebar-list__children-list': true,
-    'doc-sidebar-list__children-list--hidden': hidden
-  })}>
-    {
-      item.children.map((child, i) => {
-        return (
-          <SidebarItem
-            key={i + 'sidebar-child-item' }
-            className="doc-sidebar-list__item--child"
-            item={child}
-            page={page}
-            config={config}
-            tocItems={tocItems}
-            visibleHeaderId={visibleHeaderId}
-            url_for={url_for} />
-        );
-      })
-    }
-  </ul>);
+  render() {
+    const { item, page, config, tocItems, visibleHeaderId, url_for, hidden } = this.props;
+    return (<ul className={classNames({
+      'doc-sidebar-list__children-list': true,
+      'doc-sidebar-list__children-list--hidden': hidden
+    })}>
+      {
+        item.children.map((child, i) => {
+          return (
+            <SidebarItem
+              key={i + 'sidebar-child-item' }
+              className="doc-sidebar-list__item--child"
+              item={child}
+              page={page}
+              config={config}
+              tocItems={tocItems}
+              visibleHeaderId={visibleHeaderId}
+              url_for={url_for}
+              ref={ c => c ? this.children.push(c) : void 0 }/>
+          );
+        })
+      }
+    </ul>);
+  }
 }
 
 function SidebarTocItem ({item, visibleHeaderId}) {

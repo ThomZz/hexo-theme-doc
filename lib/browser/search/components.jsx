@@ -1,14 +1,25 @@
 const React = require('react');
-const {SHOW_SEARCH_RESULTS, HIDE_SEARCH_RESULTS} = require('./actions');
-const {dispatch} = require('../utils');
+const ReactDOM = require('react-dom');
+const { SHOW_SEARCH_RESULTS, HIDE_SEARCH_RESULTS } = require('./actions');
+const { dispatch } = require('../utils');
 
 class SearchForm extends React.Component {
 
-  constructor (props) {
+  constructor(props) {
     super(props);
+
+    this.searchInput = null;
   }
 
-  handleKeyUp (e) {
+  componentDidUpdate() {
+    if (this.props.autoFocus) {
+        if (this.searchInput) {
+          this.searchInput.focus({ preventScroll: true });
+        }
+    }
+  }
+
+  handleKeyUp(e) {
     const query = (e.target.value || '').trim();
 
     if (!query) {
@@ -20,14 +31,14 @@ class SearchForm extends React.Component {
 
     const results = this.props.search(query);
 
-    dispatch(SHOW_SEARCH_RESULTS, {results, query});
+    dispatch(SHOW_SEARCH_RESULTS, { results, query });
 
     if (typeof this.props.onSearch === 'function') {
       this.props.onSearch();
     }
   }
 
-  render () {
+  render() {
 
     if (!this.props.search) { return null; }
 
@@ -37,7 +48,8 @@ class SearchForm extends React.Component {
           className="dc-input dc-search-form__input doc-search-form__input"
           placeholder="Search..."
           onKeyUp={this.handleKeyUp.bind(this)}
-          autoFocus={this.props.autoFocus} />
+          ref={c => this.searchInput = c}
+          />
         <button className="dc-btn dc-search-form__btn doc-search-form__btn" aria-label="Search">
           <i className="dc-icon dc-icon--search"></i>
         </button>
@@ -46,19 +58,19 @@ class SearchForm extends React.Component {
   }
 }
 
-function SearchResultsTitle ({results, query}) {
+function SearchResultsTitle({ results, query }) {
   return (
     <div>
       <h1 className="doc-search-results__title">
-        { results.length ? results.length : 'No' } results for <span className="doc-search-results__title__query">"{query}"</span>
+        {results.length ? results.length : 'No'} results for <span className="doc-search-results__title__query">"{query}"</span>
       </h1>
 
-      { !results.length ? <p>There are no results for "{query}". Why not <strong>try typing another keyword?</strong></p> : null }
+      {!results.length ? <p>There are no results for "{query}". Why not <strong>try typing another keyword?</strong></p> : null}
     </div>
   );
 }
 
-function SearchResultsList ({results}) {
+function SearchResultsList({ results }) {
   if (!results.length) {
     return null;
   }
@@ -69,9 +81,9 @@ function SearchResultsList ({results}) {
 
   return (
     <ul className="doc-search-results__list">
-      { results.map((result, i) => {
+      {results.map((result, i) => {
         return (
-          <li key={'doc-search-results__list__item-' + i } className="doc-search-results__list__item">
+          <li key={'doc-search-results__list__item-' + i} className="doc-search-results__list__item">
             <a
               href={result.path}
               className="doc-search-results__list__link"
@@ -88,4 +100,4 @@ function SearchResultsList ({results}) {
   );
 }
 
-module.exports = {SearchForm, SearchResultsTitle, SearchResultsList};
+module.exports = { SearchForm, SearchResultsTitle, SearchResultsList };

@@ -1,17 +1,20 @@
 const React = require('react');
 const ReactDOM = require('react-dom');
 const $ = require('jquery');
-const {url_for, getTOCHeaders} = require('../utils');
-const {Sidebar, SidebarToggle, SidebarClose, Navbar, Logo} = require('./components.jsx');
-const {SearchForm} = require('../search/components.jsx');
+const { url_for, getTOCHeaders } = require('../utils');
+const { Sidebar, SidebarToggle, SidebarClose, Navbar, Logo } = require('./components.jsx');
+const { SearchForm } = require('../search/components.jsx');
 const searchLoad = require('../search/load');
 
 const SIDEBAR_IS_VISIBLE_CLASS = 'doc-sidebar--is-visible';
 const NAVIGATION_IS_COLLASPED_CLASS = 'doc-navigation--is-collapsed';
 
 class Navigation extends React.Component {
-  constructor (props) {
+  constructor(props) {
     super(props);
+
+    this.sideBar = null;
+    this.searchForm = null;
 
     this.url_for = url_for(this.props);
 
@@ -23,7 +26,7 @@ class Navigation extends React.Component {
     };
   }
 
-  componentDidMount () {
+  componentDidMount() {
     const SmoothScroll = require('smooth-scroll');
     const $headers = getTOCHeaders();
     const tocItems = this.getTocItems($headers);
@@ -31,11 +34,6 @@ class Navigation extends React.Component {
     this.$body = $('body');
     this.$content = $('.doc-content');
     this.items = this.getItems();
-
-    // this selector is wrapped in a function
-    // since the selected element can be removed and recreated depending on the state
-    // we have to access the DOM everytime, we can't keep a reference
-    this.$searchFormInput = () => $('.dc-search-form__input');
 
     this.loadSearchIndex();
     this.addAnchorToHeaders($headers);
@@ -52,14 +50,19 @@ class Navigation extends React.Component {
       tocItems,
       visibleHeaderId: window.location.hash.replace('#', '')
     });
+
   }
 
-  getItems () {
-    const {page} = this.props;
-    const {navigation} = Object.assign({}, { navigation: {} }, this.props.data);
+  componentDidUpdate() {
+    this.scrollSidebarToCurrentItem();
+  }
+
+  getItems() {
+    const { page } = this.props;
+    const { navigation } = Object.assign({}, { navigation: {} }, this.props.data);
     const items = navigation.main || [];
 
-    (function recurse (items, parent) {
+    (function recurse(items, parent) {
       items.forEach((item) => {
         // add parent methods
         item.parent = () => { return parent; };
@@ -71,7 +74,7 @@ class Navigation extends React.Component {
         // and traverse ancestors
         if (item.path === page.path) {
           item.isCurrent = true;
-          (function walk (p) {
+          (function walk(p) {
             if (p) {
               p.isCurrentAncestor = true;
             }
@@ -92,7 +95,15 @@ class Navigation extends React.Component {
     return items;
   }
 
-  getTocItems ($headers) {
+  /** Scrolls to the currently active sidebar item. */
+  scrollSidebarToCurrentItem() {
+    const currentItem = this.sideBar.items.find(i => i.props.item.isCurrent);
+    if (currentItem) {
+      currentItem.anchorElement.scrollIntoView({ block: "center", inline: "center" });
+    }
+  }
+
+  getTocItems($headers) {
     return $headers.map(function (i, h) {
       return {
         id: h.id,
@@ -102,8 +113,8 @@ class Navigation extends React.Component {
     });
   }
 
-  addAnchorToHeaders ($headers) {
-    $headers.each(function makeHeaderLinkable (i, h) {
+  addAnchorToHeaders($headers) {
+    $headers.each(function makeHeaderLinkable(i, h) {
       const span = document.createElement('span');
       h.insertBefore(span, h.firstChild);
 
@@ -121,8 +132,8 @@ class Navigation extends React.Component {
 
   // Listen to "DOMContentLoaded|scroll|resize" events and determines
   // which header is currently "visible"
-  listenVisibleHeaderChanges ($headers) {
-    const offsetThreshold =  120;
+  listenVisibleHeaderChanges($headers) {
+    const offsetThreshold = 120;
     let prev, next;
 
     const listener = () => {
@@ -165,41 +176,42 @@ class Navigation extends React.Component {
     return listener;
   }
 
-  loadSearchIndex () {
+  loadSearchIndex() {
     const route = this.props.config.theme_config.search.route || '/lunr.json';
     searchLoad(this.url_for(route))
       .then((search) => this.setState({ search }));
   }
 
-  listenContentClick () {
+  listenContentClick() {
     this.$content.on('click', this.onContentClick.bind(this));
   }
 
-  onContentClick () {
-    if ( this.$body.hasClass(SIDEBAR_IS_VISIBLE_CLASS) ) {
+  onContentClick() {
+    if (this.$body.hasClass(SIDEBAR_IS_VISIBLE_CLASS)) {
       this.toggleSidebar();
     }
   }
 
-  collapseSidebar () {
+  collapseSidebar() {
     this.$body.addClass(NAVIGATION_IS_COLLASPED_CLASS);
   }
 
-  uncollapseSidebar () {
+  uncollapseSidebar() {
     this.$body.removeClass(NAVIGATION_IS_COLLASPED_CLASS);
-    this.$searchFormInput().focus();
+    this.sideBar.searchForm.searchInput.focus();
+    this.scrollSidebarToCurrentItem();
   }
 
-  toggleSidebar () {
+  toggleSidebar() {
     this.$body.toggleClass(SIDEBAR_IS_VISIBLE_CLASS);
   }
 
-  hideSidebar () {
+  hideSidebar() {
     this.$body.removeClass(SIDEBAR_IS_VISIBLE_CLASS);
   }
 
-  render () {
-    const {navigation} = Object.assign({}, { navigation: {} }, this.props.data);
+  render() {
+    const { navigation } = Object.assign({}, { navigation: {} }, this.props.data);
     return (
       <div className="doc-navigation">
         <Navbar
@@ -215,7 +227,7 @@ class Navigation extends React.Component {
             onClick={this.toggleSidebar.bind(this)} />
           <SearchForm
             search={this.state.search}
-            onSearch={this.hideSidebar.bind(this)} />
+            onSearch={this.hideSidebar.bind(this)}/>
         </Navbar>
 
         <Sidebar
@@ -229,10 +241,12 @@ class Navigation extends React.Component {
           tocItems={this.state.tocItems}
           visibleHeaderId={this.state.visibleHeaderId}
           support={this.props.config.theme_config.support}
+          autoFocus={this.props.config.theme_config.search.auto_focus}
+          ref={ c => this.sideBar = c }
         />
       </div>
     );
   }
 }
 
-module.exports = {Navigation, SIDEBAR_IS_VISIBLE_CLASS, NAVIGATION_IS_COLLASPED_CLASS};
+module.exports = { Navigation, SIDEBAR_IS_VISIBLE_CLASS, NAVIGATION_IS_COLLASPED_CLASS };
