@@ -1,6 +1,6 @@
 {
   "name": "thomzz-hexo-theme-doc",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "main": "index.js",
   "description": "A fork from zalando-incubator hexo-theme-doc, a documentation theme for Hexo",
   "keywords": [
