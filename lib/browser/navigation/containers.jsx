@@ -97,7 +97,7 @@ class Navigation extends React.Component {
 
   /** Scrolls to the currently active sidebar item. */
   scrollSidebarToCurrentItem() {
-    const currentItem = this.sideBar.items.find(i => i.props.item.isCurrent);
+    const currentItem = this.sideBar.currentItem;
     if (currentItem) {
       currentItem.anchorElement.scrollIntoView({ block: "center", inline: "center" });
     }
@@ -227,7 +227,7 @@ class Navigation extends React.Component {
             onClick={this.toggleSidebar.bind(this)} />
           <SearchForm
             search={this.state.search}
-            onSearch={this.hideSidebar.bind(this)}/>
+            onSearch={this.hideSidebar.bind(this)} />
         </Navbar>
 
         <Sidebar
@@ -242,7 +242,7 @@ class Navigation extends React.Component {
           visibleHeaderId={this.state.visibleHeaderId}
           support={this.props.config.theme_config.support}
           autoFocus={this.props.config.theme_config.search.auto_focus}
-          ref={ c => this.sideBar = c }
+          ref={c => this.sideBar = c}
         />
       </div>
     );

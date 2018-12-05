@@ -27,7 +27,7 @@ class Sidebar extends React.Component {
   constructor(props) {
     super(props);
     this.searchForm = null;
-    this.items = [];
+    this.currentItem = null;
   }
 
   renderItems() {
@@ -51,25 +51,15 @@ class Sidebar extends React.Component {
         tocItems={tocItems}
         visibleHeaderId={visibleHeaderId}
         url_for={url_for}
-        ref ={ c => c ? this.items.push(c) : void 0 } />
+        ref={ it => {
+          if (!this.currentItem) {
+            this.currentItem = it ? it.currentItem : void 0;
+          }
+        }}/>
       );
     });
 
-    this.items = this.flattenItems(this.items);
-
     return itemsTemplate;
-  }
-
-  flattenItems(items) {
-    return items.reduce((acc, i) => {
-      i = Object.assign({}, i);
-      acc = acc.concat(i);
-      if (i.children) {
-        acc = acc.concat(this.flattenItems(i.children));
-        i.children = [];
-      }
-      return acc;
-    }, []);
   }
 
   render() {
@@ -106,7 +96,7 @@ class SidebarItem extends React.Component  {
     super(props);
 
     this.anchorElement = null;
-    this.children = null;
+    this.currentItem = this.props.item.isCurrent ? this : void 0;
     this.state = {
       hasChildren: false,
       childrenListIsVisible: false
@@ -153,12 +143,15 @@ class SidebarItem extends React.Component  {
         visibleHeaderId={visibleHeaderId}
         url_for={url_for}
         hidden={!childrenListIsVisible}
-        ref ={ c => c ? this.children = c.children : void 0 }
-      />);
+        ref={ it => {
+          if (!this.currentItem) {
+            this.currentItem = it ? it.currentItem : void 0;
+          }
+        }}/>
+        );
     }
 
     if (isCurrent) {
-      //this.saveMenuScrollPosition();
       toc = (
         <ul className="doc-sidebar-list__toc-list">
           {
@@ -197,7 +190,7 @@ class SidebarItem extends React.Component  {
         {
           isLabel ? <span onClick={this.toggleChildrenVisibility.bind(this)}
             className={toggleClassName}>{item.text}</span> :
-            <a ref={ c => this.anchorElement = c}
+            <a ref={ c => this.anchorElement = c  }
               className={toggleClassName}
               href={url_for(item.path)}
               target={item.target ? item.target : '_self'}>
@@ -213,7 +206,7 @@ class SidebarItem extends React.Component  {
 class SidebarChildrenList extends React.Component  {
   constructor (props) {
     super(props);
-    this.children = [];
+    this.currentItem = null;
   }
 
   render() {
@@ -234,7 +227,11 @@ class SidebarChildrenList extends React.Component  {
               tocItems={tocItems}
               visibleHeaderId={visibleHeaderId}
               url_for={url_for}
-              ref={ c => c ? this.children.push(c) : void 0 }/>
+              ref={ it => {
+                if (!this.currentItem) {
+                  this.currentItem = it ? it.currentItem : void 0;
+                }
+              }}/>
           );
         })
       }
